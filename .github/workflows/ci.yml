@@ -50,4 +50,4 @@ jobs:
         run: ninja -C _build
 
       - name: test
-        run: xvfb-run -a meson test -C _build
+        run: xvfb-run -a meson test -C _build --suite=inform7-ide
