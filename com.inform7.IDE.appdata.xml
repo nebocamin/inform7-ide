@@ -68,6 +68,14 @@
   <url type="contribute">https://github.com/ganelson/inform/</url>
   <url type="translate">https://explore.transifex.com/ptomato/inform7-ide/</url>
   <releases>
+    <release version="2.0.2" date="2026-04-12">
+      <description>
+        <ul>
+          <li>Fix source hyperlinks not working</li>
+          <li>Fix checkmark icon in Transcript panel</li>
+        </ul>
+      </description>
+    </release>
     <release version="2.0.1" date="2025-11-23">
       <description>
         <ul>
