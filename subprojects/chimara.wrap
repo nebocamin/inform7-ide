@@ -1,5 +1,5 @@
 [wrap-git]
 directory=chimara
-url=https://github.com/chimara/Chimara.git
-revision=0.9.5
+url=https://github.com/nebocamin/Chimara.git
+revision=ui-message-wakeup
 depth=1
