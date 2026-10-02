@@ -4,6 +4,7 @@
     <!--Automatic resources-->
     <file compressed="true" preprocess="xml-stripblanks">gtk/menus.ui</file>
 
+    <file preprocess="xml-stripblanks">icons/scalable/actions/check-plain-symbolic.svg</file>
     <file preprocess="xml-stripblanks">icons/scalable/actions/person-symbolic.svg</file>
 
     <file compressed="true">inform/licenses/artistic.html</file>

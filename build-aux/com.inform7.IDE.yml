@@ -1,7 +1,7 @@
 ---
 app-id: com.inform7.IDE
 runtime: org.gnome.Platform
-runtime-version: '46'
+runtime-version: '50'
 sdk: org.gnome.Sdk
 finish-args:
   - --socket=x11
@@ -39,6 +39,9 @@ modules:
       - /lib/pkgconfig
       - /share/gtk-doc
       - '*.la'
+    build-options:
+      # Missing GOO_CANVAS_ITEM_MODEL_SIMPLE cast
+      cflags: -Wno-error=incompatible-pointer-types
     config-opts:
       - --disable-introspection
       - --disable-python
@@ -169,8 +172,8 @@ modules:
     sources:
       - type: archive
         url: "https://github.com/chimara/Chimara/releases/download/\
-          0.9.4/chimara-0.9.4.tar.xz"
-        sha256: d2e097649e20f4f78f30c80839368f0017495c18c257052604a9f09bdfd4396f
+          0.9.5/chimara-0.9.5.tar.xz"
+        sha256: 7839d27b0c95d21c2f835e208cdbec13500de5dfe3ad7d8ca0b972087bb95d78
   - name: rsync
     config-opts:
       # rsync is only used to install some of Inform's data files locally.
@@ -189,8 +192,8 @@ modules:
     cleanup: ['*']
     sources:
       - type: archive
-        url: https://download.samba.org/pub/rsync/src/rsync-3.2.3.tar.gz
-        sha256: becc3c504ceea499f4167a260040ccf4d9f2ef9499ad5683c179a697146ce50e
+        url: https://download.samba.org/pub/rsync/rsync-3.4.1.tar.gz
+        sha256: 2924bcb3a1ed8b551fc101f740b9f0fe0a202b115027647cf69850d65fd88c52
   - name: inform
     buildsystem: simple
     cleanup: ['*']
