@@ -184,9 +184,8 @@ struct RunSkeinData {
 	ChimaraGlk *glk;
 
 	GSList *commands;
-	unsigned long started_handler, waiting_handler;
-	gboolean finished; /* don't have to use a GCond because this communication
-	is within the same thread and only one way? */
+	unsigned long started_handler, waiting_handler, stopped_handler;
+	int finished; /* atomic; "stopped" may be emitted from the Glk thread */
 };
 
 /* Helper function: stop the interpreter when forced input is done processing;
@@ -198,11 +197,19 @@ on_waiting_stop_interpreter(ChimaraGlk *glk, struct RunSkeinData *data)
 	if(!chimara_glk_is_line_input_pending(glk)) {
 		/* Stop the interpreter */
 		chimara_glk_stop(glk);
-		data->finished = TRUE;
-
-		/* Disconnect this handler */
-		g_signal_handler_disconnect(data->glk, data->waiting_handler);
+		g_atomic_int_set(&data->finished, TRUE);
 	}
+}
+
+/* Helper function: also finish if the game stops by itself (e.g. it ends or
+crashes, or the user presses Stop) before all the input has been processed;
+otherwise run_entire_skein_loop() would wait forever. Note that Chimara may
+emit this signal from the Glk thread, so wake up the main loop explicitly. */
+static void
+on_stopped_finish(ChimaraGlk *glk, struct RunSkeinData *data)
+{
+	g_atomic_int_set(&data->finished, TRUE);
+	g_main_context_wakeup(NULL);
 }
 
 /* Helper function: feed the commands to the interpreter after the game has
@@ -223,6 +230,7 @@ on_started_feed_commands(ChimaraGlk *glk, struct RunSkeinData *data)
 
 	/* Disconnect this handler */
 	g_signal_handler_disconnect(data->glk, data->started_handler);
+	data->started_handler = 0;
 }
 
 /* Helper function: Run the compiler output and feed the commands from the
@@ -241,25 +249,39 @@ run_entire_skein_loop(I7Node *node, struct RunSkeinData *data)
 	    G_CALLBACK(on_started_feed_commands), data);
 	data->waiting_handler = g_signal_connect_after(data->glk, "waiting",
 	    G_CALLBACK(on_waiting_stop_interpreter), data);
-	data->finished = FALSE;
+	data->stopped_handler = g_signal_connect_after(data->glk, "stopped",
+	    G_CALLBACK(on_stopped_finish), data);
+	g_atomic_int_set(&data->finished, FALSE);
 
 	/* Start the interpreter */
-	if (!load_and_start_interpreter(data->story, CHIMARA_IF(data->glk))) {
-		g_signal_handler_disconnect(data->glk, data->waiting_handler);
-		g_signal_handler_disconnect(data->glk, data->started_handler);
+	if (!load_and_start_interpreter(data->story, CHIMARA_IF(data->glk)))
 		goto finally;
-	}
 
 	/* This will run until all the line input forced in
-	on_started_feed_commands() is finished processing */
-	while(!data->finished)
-		gtk_main_iteration_do(FALSE); /* don't block */
+	on_started_feed_commands() is finished processing, or the game stops. Block
+	in the main loop while waiting, instead of spinning: the interpreter's
+	signals will wake it up. */
+	while (!g_atomic_int_get(&data->finished))
+		gtk_main_iteration_do(TRUE);
 
 	/* This should block on the chimara_glk_stop() call in
 	on_waiting_stop_interpreter() */
 	chimara_glk_wait(data->glk);
 
+	/* If the game ended by itself, Chimara may have queued a "stopped" signal
+	emission in an idle function before its thread finished. Process it now,
+	while our handlers are still connected, so that it doesn't arrive during
+	the next thread's run and finish that one prematurely. */
+	while (gtk_events_pending())
+		gtk_main_iteration();
+
 finally:
+	if (data->started_handler != 0)
+		g_signal_handler_disconnect(data->glk, data->started_handler);
+	g_signal_handler_disconnect(data->glk, data->waiting_handler);
+	g_signal_handler_disconnect(data->glk, data->stopped_handler);
+	data->started_handler = data->waiting_handler = data->stopped_handler = 0;
+
 	g_slist_foreach(data->commands, (GFunc)g_free, NULL);
 	g_slist_free(data->commands);
 }
