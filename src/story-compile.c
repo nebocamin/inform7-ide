@@ -571,6 +571,10 @@ ui_finish_compiling(CompilerData *data)
 
 	i7_story_set_compile_actions_enabled(data->story, TRUE);
 
+	/* Stop the progress bar; otherwise, if it was pulsing, it keeps animating
+	 * on every frame even after compiling has finished or failed */
+	i7_blob_clear_progress(data->story->blob);
+
 	/* Call the user callback */
 	if (data->success)
 		(data->callback)(data->story, data->callback_data);

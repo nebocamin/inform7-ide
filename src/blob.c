@@ -91,6 +91,10 @@ i7_blob_new(void)
 void
 i7_blob_set_status(I7Blob *self, const char *status, bool show_stop_button)
 {
+	/* Take the progress bar out of activity mode (see i7_blob_pulse_progress())
+	 * since it is no longer visible */
+	gtk_progress_bar_set_fraction(self->progress, 0.0);
+
 	gtk_label_set_label(self->status, status);
 	gtk_stack_set_visible_child_name(GTK_STACK(self), PAGE_STATUS);
 	self->has_status = true;
@@ -116,6 +120,11 @@ i7_blob_set_progress(I7Blob *self, double fraction, GCancellable *cancel_target)
 	}
 }
 
+/* Note: pulsing puts the progress bar in activity mode, which installs a tick
+ * callback that runs on every frame (keeping the frame clock, and therefore the
+ * CPU, busy) until the progress bar leaves activity mode again by having its
+ * fraction set. So the progress must always be ended with
+ * i7_blob_set_progress(), i7_blob_clear_progress(), or i7_blob_set_status(). */
 void
 i7_blob_pulse_progress(I7Blob *self)
 {
